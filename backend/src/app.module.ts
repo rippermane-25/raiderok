@@ -13,14 +13,11 @@ import { AdminModule } from './modules/admin/admin.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { User } from './modules/users/entities/user.entity';
-import { Role } from './modules/roles/entities/role.entity';
-import { UserRole } from './modules/roles/entities/user-role.entity';
-import { Order } from './modules/orders/entities/order.entity';
-import { OrderStatusHistory } from './modules/orders/entities/order-status-history.entity';
+import { Role, UserRole } from './modules/roles/entities/role.entity';
+import { Order, OrderStatusHistory } from './modules/orders/entities/order.entity';
 import { OrderOffer } from './modules/offers/entities/offer.entity';
 import { CourierApplication } from './modules/couriers/entities/courier-application.entity';
-import { Review } from './modules/reviews/entities/review.entity';
-import { Complaint } from './modules/reviews/entities/complaint.entity';
+import { Review, Complaint } from './modules/reviews/entities/review.entity';
 import { SupportTicket } from './modules/support/entities/support-ticket.entity';
 import { AuditLog } from './common/entities/audit-log.entity';
 
@@ -33,7 +30,7 @@ import { AuditLog } from './common/entities/audit-log.entity';
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DATABASE_HOST || 'localhost',
-      port: parseInt(process.env.DATABASE_PORT) || 5432,
+      port: parseInt(process.env.DATABASE_PORT || '5432', 10),
       username: process.env.DATABASE_USER || 'raiderok',
       password: process.env.DATABASE_PASSWORD || 'raiderok123',
       database: process.env.DATABASE_NAME || 'raiderok',

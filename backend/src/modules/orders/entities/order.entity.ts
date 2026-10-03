@@ -1,6 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
-import { User } from './user.entity';
-import { Order } from '../../orders/entities/order.entity';
+import { User } from '../../users/entities/user.entity';
 
 @Entity('orders')
 export class Order {
@@ -73,7 +72,7 @@ export class OrderStatusHistory {
   @JoinColumn({ name: 'order_id' })
   order: Order;
 
-  @Column()
+  @Column({ nullable: true })
   oldStatus: string;
 
   @Column()
