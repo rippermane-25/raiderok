@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: raiderok-db
+    environment:
+      POSTGRES_USER: raiderok
+      POSTGRES_PASSWORD: raiderok123
+      POSTGRES_DB: raiderok
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U raiderok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: raiderok-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: raiderok-api
+    environment:
+      NODE_ENV: development
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: raiderok
+      DATABASE_PASSWORD: raiderok123
+      DATABASE_NAME: raiderok
+      JWT_SECRET: raiderok-super-secret-key-change-in-prod
+      JWT_EXPIRATION: 86400
+      SMS_MOCK: "true"
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend/src:/app/src
+    command: npm run start:dev
+
+volumes:
+  postgres_data:
+
+networks:
+  default:
+    name: raiderok-network

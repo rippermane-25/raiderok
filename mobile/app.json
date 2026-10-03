@@ -1,0 +1,41 @@
+{
+  "name": "RaiderOk",
+  "displayName": "RaiderOk - Delivery",
+  "version": "0.0.1",
+  "description": "All-in-one delivery app",
+  "license": "MIT",
+  "platforms": {
+    "android": "8.0"
+  },
+  "plugins": [],
+  "cordovaPlugins": [],
+  "cordovaPlatforms": [],
+  "author": "RaiderOk Team",
+  "homepage": "https://raiderok.app",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rippermane-25/raiderok.git"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-native": "0.72.4",
+    "@react-navigation/native": "^6.1.7",
+    "@react-navigation/bottom-tabs": "^6.5.8",
+    "@react-navigation/stack": "^6.3.16",
+    "react-native-screens": "^3.25.0",
+    "react-native-safe-area-context": "^4.7.1",
+    "react-native-gesture-handler": "^2.13.4",
+    "react-native-phone-input": "^2.1.0",
+    "axios": "^1.5.0",
+    "@react-native-async-storage/async-storage": "^1.19.3",
+    "expo": "~49.0.0",
+    "expo-status-bar": "~1.6.0",
+    "expo-splash-screen": "~0.20.5"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.23.2",
+    "@types/react": "~18.2.14",
+    "@types/react-native": "~0.72.2",
+    "typescript": "~5.2.2"
+  }
+}
