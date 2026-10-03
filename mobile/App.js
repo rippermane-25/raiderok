@@ -15,8 +15,10 @@ import {
 } from 'react-native';
 import axios from 'axios';
 
-const API_URL = 'http://192.168.1.100:3000';
-const SCREEN_WIDTH = Dimensions.get('window').width;
+// ⚠️ ИЗМЕНИ ЭТО НА IP ТВОЕГО КОМПЬЮТЕРА если запускаешь локально
+// Если backend на этом же ПК: используй http://10.0.2.2:3000 для Android эмулятора
+// Или получи IP: ipconfig (Windows) / ifconfig (Linux/Mac)
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:3000';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -98,10 +100,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#eee',
+    paddingBottom: 5,
   },
   tabBarItem: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -110,8 +113,8 @@ const styles = StyleSheet.create({
     borderTopColor: '#FF6B00',
   },
   tabBarLabel: {
-    fontSize: 12,
-    marginTop: 4,
+    fontSize: 11,
+    marginTop: 2,
   },
   orderItem: {
     backgroundColor: '#fff',
@@ -177,14 +180,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  ratingContainer: {
-    flexDirection: 'row',
-    marginVertical: 10,
-  },
-  star: {
-    fontSize: 24,
-    marginHorizontal: 4,
-  },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -208,7 +203,7 @@ const styles = StyleSheet.create({
 });
 
 const LoginScreen = ({ onLoginSuccess }) => {
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState('+380938926388');
   const [otpCode, setOtpCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState('phone');
@@ -225,7 +220,7 @@ const LoginScreen = ({ onLoginSuccess }) => {
       await api.post('/auth/register', { phone: phone.startsWith('+') ? phone : '+' + phone });
       setStep('otp');
     } catch (err) {
-      setError(err.response?.data?.message || 'Ошибка регистрации');
+      setError(err.response?.data?.message || 'Ошибка регистрации. Проверь API_URL в App.js');
     } finally {
       setLoading(false);
     }
@@ -247,7 +242,7 @@ const LoginScreen = ({ onLoginSuccess }) => {
       await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
       onLoginSuccess(response.data.user);
     } catch (err) {
-      setError(err.response?.data?.message || 'Неверный код');
+      setError(err.response?.data?.message || 'Неверный код. Смотри консоль backend');
     } finally {
       setLoading(false);
     }
@@ -256,7 +251,7 @@ const LoginScreen = ({ onLoginSuccess }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>🚚 RaiderOk</Text>
+        <Text style={styles.headerTitle}>🚀 RaiderOk</Text>
         <Text style={styles.headerSubtitle}>Доставка по Одессе и Киеву</Text>
       </View>
 
@@ -278,13 +273,16 @@ const LoginScreen = ({ onLoginSuccess }) => {
               onChangeText={setPhone}
               editable={!loading}
             />
+            <Text style={{ fontSize: 12, color: '#999', marginVertical: 5 }}>
+              Код будет выведен в консоль backend
+            </Text>
             <TouchableOpacity style={styles.button} onPress={handleRegister} disabled={loading}>
               {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Получить код</Text>}
             </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.card}>
-            <Text style={{ fontSize: 16, marginBottom: 15, fontWeight: '600' }}>Введите код из SMS</Text>
+            <Text style={{ fontSize: 16, marginBottom: 15, fontWeight: '600' }}>Введите код из консоли</Text>
             <TextInput
               style={styles.input}
               placeholder="000000"
@@ -295,7 +293,7 @@ const LoginScreen = ({ onLoginSuccess }) => {
               editable={!loading}
             />
             <Text style={{ fontSize: 12, color: '#999', marginVertical: 10 }}>
-              Код отправлен на номер: {phone}
+              Номер: {phone}
             </Text>
             <TouchableOpacity style={styles.button} onPress={handleVerifyOtp} disabled={loading}>
               {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Войти</Text>}
@@ -310,7 +308,7 @@ const LoginScreen = ({ onLoginSuccess }) => {
   );
 };
 
-const OrderListScreen = ({ user, onSelectOrder }) => {
+const OrderListScreen = ({ user }) => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -321,23 +319,15 @@ const OrderListScreen = ({ user, onSelectOrder }) => {
 
   const loadOrders = async () => {
     try {
-      let endpoint = '/orders';
-      if (user.roles?.some((r) => r.name === 'customer')) {
-        endpoint = '/orders/customer/my-orders';
-      }
+      const endpoint = user.roles?.some((r) => r.name === 'customer') ? '/orders/customer/my-orders' : '/orders';
       const response = await api.get(endpoint);
       setOrders(response.data || []);
     } catch (err) {
-      Alert.alert('Ошибка', 'Не удалось загрузить заказы');
+      Alert.alert('Ошибка', 'Не удалось загрузить заказы: ' + err.message);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    loadOrders();
   };
 
   if (loading) {
@@ -351,13 +341,13 @@ const OrderListScreen = ({ user, onSelectOrder }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Заказы</Text>
+        <Text style={styles.headerTitle}>📋 Заказы</Text>
       </View>
       <FlatList
         data={orders}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <TouchableOpacity style={styles.orderItem} onPress={() => onSelectOrder(item)}>
+          <View style={styles.orderItem}>
             <View style={styles.row}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.label]}>От: {item.pickupAddress}</Text>
@@ -369,10 +359,15 @@ const OrderListScreen = ({ user, onSelectOrder }) => {
               <Text style={styles.price}>{item.customerPrice} ₴</Text>
               <Text style={{ color: '#666', fontSize: 12 }}>#{item.id.substr(0, 8)}</Text>
             </View>
-          </TouchableOpacity>
+          </View>
         )}
-        onRefresh={onRefresh}
+        onRefresh={loadOrders}
         refreshing={refreshing}
+        ListEmptyComponent={
+          <View style={[styles.container, styles.loadingContainer]}>
+            <Text style={{ color: '#999', fontSize: 14 }}>Нет заказов</Text>
+          </View>
+        }
       />
     </View>
   );
@@ -405,14 +400,7 @@ const CreateOrderScreen = ({ user }) => {
         customerPrice: parseFloat(formData.customerPrice),
       });
       setSuccess('Заказ создан успешно!');
-      setFormData({
-        pickupAddress: '',
-        deliveryAddress: '',
-        recipientName: '',
-        recipientPhone: '',
-        description: '',
-        customerPrice: '',
-      });
+      setFormData({ pickupAddress: '', deliveryAddress: '', recipientName: '', recipientPhone: '', description: '', customerPrice: '' });
     } catch (err) {
       setError(err.response?.data?.message || 'Ошибка создания заказа');
     } finally {
@@ -423,54 +411,19 @@ const CreateOrderScreen = ({ user }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Новый заказ</Text>
+        <Text style={styles.headerTitle}>➕ Новый заказ</Text>
       </View>
       <ScrollView style={{ flex: 1, padding: 15 }}>
         {error && <View style={styles.error}><Text style={styles.errorText}>{error}</Text></View>}
         {success && <View style={styles.success}><Text style={styles.successText}>{success}</Text></View>}
 
         <View style={styles.card}>
-          <TextInput
-            style={styles.input}
-            placeholder="Адрес отправки"
-            value={formData.pickupAddress}
-            onChangeText={(v) => setFormData({ ...formData, pickupAddress: v })}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Адрес доставки"
-            value={formData.deliveryAddress}
-            onChangeText={(v) => setFormData({ ...formData, deliveryAddress: v })}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Имя получателя"
-            value={formData.recipientName}
-            onChangeText={(v) => setFormData({ ...formData, recipientName: v })}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Телефон получателя"
-            keyboardType="phone-pad"
-            value={formData.recipientPhone}
-            onChangeText={(v) => setFormData({ ...formData, recipientPhone: v })}
-          />
-          <TextInput
-            style={[styles.input, { minHeight: 80 }]}
-            placeholder="Описание товара"
-            multiline
-            numberOfLines={3}
-            value={formData.description}
-            onChangeText={(v) => setFormData({ ...formData, description: v })}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Цена в ₴"
-            keyboardType="decimal-pad"
-            value={formData.customerPrice}
-            onChangeText={(v) => setFormData({ ...formData, customerPrice: v })}
-          />
-
+          <TextInput style={styles.input} placeholder="Адрес отправки" value={formData.pickupAddress} onChangeText={(v) => setFormData({ ...formData, pickupAddress: v })} />
+          <TextInput style={styles.input} placeholder="Адрес доставки" value={formData.deliveryAddress} onChangeText={(v) => setFormData({ ...formData, deliveryAddress: v })} />
+          <TextInput style={styles.input} placeholder="Имя получателя" value={formData.recipientName} onChangeText={(v) => setFormData({ ...formData, recipientName: v })} />
+          <TextInput style={styles.input} placeholder="Телефон получателя" keyboardType="phone-pad" value={formData.recipientPhone} onChangeText={(v) => setFormData({ ...formData, recipientPhone: v })} />
+          <TextInput style={[styles.input, { minHeight: 80 }]} placeholder="Описание товара" multiline numberOfLines={3} value={formData.description} onChangeText={(v) => setFormData({ ...formData, description: v })} />
+          <TextInput style={styles.input} placeholder="Цена в ₴" keyboardType="decimal-pad" value={formData.customerPrice} onChangeText={(v) => setFormData({ ...formData, customerPrice: v })} />
           <TouchableOpacity style={styles.button} onPress={handleCreateOrder} disabled={loading}>
             {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Создать заказ</Text>}
           </TouchableOpacity>
@@ -485,7 +438,7 @@ const CourierScreen = ({ user }) => {
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [offerPrice, setOfferPrice] = useState('');
-  const [making Offer, setMakingOffer] = useState(false);
+  const [makingOffer, setMakingOffer] = useState(false);
 
   useEffect(() => {
     loadAvailableOrders();
@@ -509,10 +462,7 @@ const CourierScreen = ({ user }) => {
     }
     setMakingOffer(true);
     try {
-      await api.post('/offers', {
-        orderId: selectedOrder.id,
-        offeredPrice: parseFloat(offerPrice),
-      });
+      await api.post('/offers', { orderId: selectedOrder.id, offeredPrice: parseFloat(offerPrice) });
       Alert.alert('Успех', 'Предложение отправлено');
       setSelectedOrder(null);
       setOfferPrice('');
@@ -535,7 +485,7 @@ const CourierScreen = ({ user }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Доступные заказы</Text>
+        <Text style={styles.headerTitle}>🚚 Заказы</Text>
       </View>
       <FlatList
         data={orders}
@@ -544,9 +494,10 @@ const CourierScreen = ({ user }) => {
           <TouchableOpacity style={styles.orderItem} onPress={() => setSelectedOrder(item)}>
             <Text style={styles.label}>От: {item.pickupAddress}</Text>
             <Text style={styles.label}>До: {item.deliveryAddress}</Text>
-            <Text style={[styles.price, { marginTop: 8 }]}>Цена заказчика: {item.customerPrice} ₴</Text>
+            <Text style={[styles.price, { marginTop: 8 }]}>Цена: {item.customerPrice} ₴</Text>
           </TouchableOpacity>
         )}
+        ListEmptyComponent=<View style={[styles.container, styles.loadingContainer]}><Text style={{ color: '#999' }}>Нет доступных заказов</Text></View>
       />
 
       <Modal visible={!!selectedOrder} transparent animationType="slide">
@@ -558,13 +509,7 @@ const CourierScreen = ({ user }) => {
                 <Text style={styles.label}>От: {selectedOrder.pickupAddress}</Text>
                 <Text style={styles.label}>До: {selectedOrder.deliveryAddress}</Text>
                 <Text style={styles.label}>Цена заказчика: {selectedOrder.customerPrice} ₴</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Ваша цена (₴)"
-                  keyboardType="decimal-pad"
-                  value={offerPrice}
-                  onChangeText={setOfferPrice}
-                />
+                <TextInput style={styles.input} placeholder="Ваша цена (₴)" keyboardType="decimal-pad" value={offerPrice} onChangeText={setOfferPrice} />
                 <TouchableOpacity style={styles.button} onPress={handleMakeOffer} disabled={makingOffer}>
                   {makingOffer ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Отправить</Text>}
                 </TouchableOpacity>
@@ -581,15 +526,14 @@ const CourierScreen = ({ user }) => {
 };
 
 const AdminScreen = ({ user }) => {
-  const [activeTab, setActiveTab] = useState('applications');
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedApp, setSelectedApp] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
 
   useEffect(() => {
-    if (activeTab === 'applications') loadApplications();
-  }, [activeTab]);
+    loadApplications();
+  }, []);
 
   const loadApplications = async () => {
     try {
@@ -639,8 +583,8 @@ const AdminScreen = ({ user }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Админ-панель</Text>
-        <Text style={styles.headerSubtitle}>Номер: {user.phone}</Text>
+        <Text style={styles.headerTitle}>⚙️ Админ</Text>
+        <Text style={styles.headerSubtitle}>{user.phone}</Text>
       </View>
 
       <FlatList
@@ -652,31 +596,22 @@ const AdminScreen = ({ user }) => {
             <Text style={styles.label}>Статус: {item.status}</Text>
             <View style={[styles.row, { marginTop: 10 }]}>
               <TouchableOpacity style={[styles.button, { flex: 1, marginRight: 5 }]} onPress={() => handleApprove(item.id)}>
-                <Text style={styles.buttonText}>✓ Одобрить</Text>
+                <Text style={styles.buttonText}>✓ Да</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.button, styles.buttonSecondary, { flex: 1, marginLeft: 5 }]}
-                onPress={() => setSelectedApp(item)}
-              >
-                <Text style={[styles.buttonText, styles.buttonSecondaryText]}>✕ Отклонить</Text>
+              <TouchableOpacity style={[styles.button, styles.buttonSecondary, { flex: 1, marginLeft: 5 }]} onPress={() => setSelectedApp(item)}>
+                <Text style={[styles.buttonText, styles.buttonSecondaryText]}>✕ Нет</Text>
               </TouchableOpacity>
             </View>
           </View>
         )}
+        ListEmptyComponent=<View style={[styles.container, styles.loadingContainer]}><Text style={{ color: '#999' }}>Нет заявок</Text></View>
       />
 
       <Modal visible={!!selectedApp} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Причина отклонения</Text>
-            <TextInput
-              style={[styles.input, { minHeight: 80 }]}
-              placeholder="Укажите причину..."
-              multiline
-              numberOfLines={4}
-              value={rejectReason}
-              onChangeText={setRejectReason}
-            />
+            <TextInput style={[styles.input, { minHeight: 80 }]} placeholder="Укажите причину..." multiline numberOfLines={4} value={rejectReason} onChangeText={setRejectReason} />
             <TouchableOpacity style={styles.button} onPress={handleReject}>
               <Text style={styles.buttonText}>Отклонить</Text>
             </TouchableOpacity>
@@ -694,7 +629,6 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('orders');
-  const [selectedOrder, setSelectedOrder] = useState(null);
 
   useEffect(() => {
     checkToken();
@@ -708,7 +642,7 @@ export default function App() {
         setUser(JSON.parse(userJson));
       }
     } catch (err) {
-      console.error('Token check failed:', err);
+      console.error('Token check error:', err);
     } finally {
       setLoading(false);
     }
@@ -740,7 +674,7 @@ export default function App() {
     if (isAdmin && activeTab === 'admin') return <AdminScreen user={user} />;
     if (isCustomer && activeTab === 'create') return <CreateOrderScreen user={user} />;
     if (isCourier && activeTab === 'courier') return <CourierScreen user={user} />;
-    return <OrderListScreen user={user} onSelectOrder={setSelectedOrder} />;
+    return <OrderListScreen user={user} />;
   };
 
   return (
@@ -748,33 +682,21 @@ export default function App() {
       {renderContent()}
 
       <View style={styles.tabBar}>
-        <TouchableOpacity
-          style={[styles.tabBarItem, activeTab === 'orders' && styles.tabBarItemActive]}
-          onPress={() => setActiveTab('orders')}
-        >
+        <TouchableOpacity style={[styles.tabBarItem, activeTab === 'orders' && styles.tabBarItemActive]} onPress={() => setActiveTab('orders')}>
           <Text style={[styles.tabBarLabel, activeTab === 'orders' && { color: '#FF6B00', fontWeight: '700' }]}>📋 Заказы</Text>
         </TouchableOpacity>
         {isCustomer && (
-          <TouchableOpacity
-            style={[styles.tabBarItem, activeTab === 'create' && styles.tabBarItemActive]}
-            onPress={() => setActiveTab('create')}
-          >
+          <TouchableOpacity style={[styles.tabBarItem, activeTab === 'create' && styles.tabBarItemActive]} onPress={() => setActiveTab('create')}>
             <Text style={[styles.tabBarLabel, activeTab === 'create' && { color: '#FF6B00', fontWeight: '700' }]}>➕ Новый</Text>
           </TouchableOpacity>
         )}
         {isCourier && (
-          <TouchableOpacity
-            style={[styles.tabBarItem, activeTab === 'courier' && styles.tabBarItemActive]}
-            onPress={() => setActiveTab('courier')}
-          >
-            <Text style={[styles.tabBarLabel, activeTab === 'courier' && { color: '#FF6B00', fontWeight: '700' }]}>🚚 Заказы</Text>
+          <TouchableOpacity style={[styles.tabBarItem, activeTab === 'courier' && styles.tabBarItemActive]} onPress={() => setActiveTab('courier')}>
+            <Text style={[styles.tabBarLabel, activeTab === 'courier' && { color: '#FF6B00', fontWeight: '700' }]}>🚚 Доступно</Text>
           </TouchableOpacity>
         )}
         {isAdmin && (
-          <TouchableOpacity
-            style={[styles.tabBarItem, activeTab === 'admin' && styles.tabBarItemActive]}
-            onPress={() => setActiveTab('admin')}
-          >
+          <TouchableOpacity style={[styles.tabBarItem, activeTab === 'admin' && styles.tabBarItemActive]} onPress={() => setActiveTab('admin')}>
             <Text style={[styles.tabBarLabel, activeTab === 'admin' && { color: '#FF6B00', fontWeight: '700' }]}>⚙️ Админ</Text>
           </TouchableOpacity>
         )}
